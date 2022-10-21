@@ -1,0 +1,40 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - which aws
+      #      - ls -l /usr/local/bin/aws
+      - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+      - unzip -q awscliv2.zip
+        #- ./aws/install -i /usr/local/aws-cli -b /usr/local/bin --update
+      - ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update
+        #- aws --version
+        #- ln -s /usr/local/bin/aws /root/.pyenv/shims/aws
+      - ls -l /root/.pyenv/shims/aws
+      - rm /root/.pyenv/shims/aws
+      - ln -s /usr/local/bin/aws /root/.pyenv/shims/aws  
+      - aws --version
+      - aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 812020734571.dkr.ecr.us-east-2.amazonaws.com
+      - REPOSITORY_URI=812020734571.dkr.ecr.us-east-2.amazonaws.com/uk-post-codes
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=${COMMIT_HASH:=latest}
+
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker build -t $REPOSITORY_URI:latest .
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker images...
+      - docker push $REPOSITORY_URI:latest
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - echo Writing image definitions file...
+      - printf '[{"name":"UKPostCluster","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+artifacts:
+    files: imagedefinitions.json
