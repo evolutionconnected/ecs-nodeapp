@@ -4,7 +4,7 @@
     "networkMode": "awsvpc",
     "containerDefinitions": [
         {
-            "name": "next-uk-post-codes",
+            "name": "UKPost-container",
             "image": "812020734571.dkr.ecr.us-east-2.amazonaws.com/uk-post-codes:latest",
             "portMappings": [
                 {
